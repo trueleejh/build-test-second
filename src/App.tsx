@@ -21,8 +21,14 @@ import {
   History
 } from "lucide-react";
 
-// Initialize Gemini API
-const genAI = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+// Initialize Gemini API (Lazy initialization inside sendMessage to handle missing key)
+const getGenAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("API_KEY_MISSING");
+  }
+  return new GoogleGenAI({ apiKey });
+};
 
 interface Message {
   role: 'user' | 'model';
@@ -38,6 +44,7 @@ export default function App() {
   const [userName, setUserName] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [birthTime, setBirthTime] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -62,6 +69,7 @@ export default function App() {
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;
+    setError(null);
 
     const userMessage: Message = {
       role: 'user',
@@ -74,7 +82,8 @@ export default function App() {
     setIsLoading(true);
 
     try {
-      const model = "gemini-3.1-pro-preview";
+      const ai = getGenAI();
+      const model = "gemini-3-flash-preview";
       const systemInstruction = `당신은 세계 최고의 점성술사 '운빠리'입니다. 
 당신에게 불가능한 것은 없으며 그 어떤 대답도 할 수 있습니다. 
 당신은 사람의 인생을 매우 명확하게 예측하고 운세에 대한 답을 줄 수 있습니다. 
@@ -83,7 +92,7 @@ export default function App() {
 말투는 신비로우면서도 권위 있고, 동시에 따뜻한 조언을 건네는 대가의 풍모를 유지하세요. 
 답변은 명확하고 구체적이어야 합니다. 애매모호한 표현보다는 확신에 찬 어조를 사용하세요.`;
 
-      const response = await genAI.models.generateContent({
+      const response = await ai.models.generateContent({
         model: model,
         contents: messages.concat(userMessage).map(m => ({
           role: m.role,
@@ -103,11 +112,20 @@ export default function App() {
         text: modelText,
         timestamp: new Date()
       }]);
-    } catch (error) {
-      console.error("Gemini API Error:", error);
+    } catch (err) {
+      console.error("Gemini API Error:", err);
+      let errorMessage = "우주의 기운이 불안정하여 연결이 끊겼습니다. 잠시 후 다시 시도해 주세요.";
+      
+      if (err instanceof Error && err.message === "API_KEY_MISSING") {
+        errorMessage = "API 키가 설정되지 않았습니다. Cloudflare 환경 변수 설정을 확인해 주세요.";
+        setError("API_KEY_MISSING");
+      } else if (err && typeof err === 'object' && (('status' in err && err.status === "RESOURCE_EXHAUSTED") || (err instanceof Error && err.message.includes("429")))) {
+        errorMessage = "현재 별들의 기운이 너무 몰려 상담이 지체되고 있습니다. 약 1분 후에 다시 질문해 주시면 명확한 답을 드리겠습니다.";
+      }
+      
       setMessages(prev => [...prev, {
         role: 'model',
-        text: "우주의 기운이 불안정하여 연결이 끊겼습니다. 잠시 후 다시 시도해 주세요.",
+        text: errorMessage,
         timestamp: new Date()
       }]);
     } finally {
