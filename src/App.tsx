@@ -121,9 +121,47 @@ export default function App() {
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-purple-900/20 rounded-full blur-[120px]" />
         <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-900/20 rounded-full blur-[120px]" />
-        <div className="absolute top-1/4 right-1/4 w-1 h-1 bg-white rounded-full animate-pulse shadow-[0_0_10px_white]" />
-        <div className="absolute top-1/3 left-1/2 w-1 h-1 bg-white rounded-full animate-pulse delay-700 shadow-[0_0_10px_white]" />
-        <div className="absolute bottom-1/4 left-1/4 w-1 h-1 bg-white rounded-full animate-pulse delay-1000 shadow-[0_0_10px_white]" />
+        
+        {/* Twinkling Stars */}
+        {[...Array(40)].map((_, i) => {
+          const top = Math.random() * 100;
+          const left = Math.random() * 100;
+          const size = Math.random() * 2 + 1;
+          const delay = Math.random() * 5;
+          const duration = 2 + Math.random() * 3;
+          const colors = [
+            'bg-white shadow-[0_0_8px_white]',
+            'bg-gold-400 shadow-[0_0_8px_#f1c40f]',
+            'bg-blue-300 shadow-[0_0_8px_#93c5fd]',
+            'bg-purple-300 shadow-[0_0_8px_#d8b4fe]',
+            'bg-pink-300 shadow-[0_0_8px_#f9a8d4]'
+          ];
+          const colorClass = colors[Math.floor(Math.random() * colors.length)];
+          
+          return (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0.2, scale: 0.8 }}
+              animate={{ 
+                opacity: [0.2, 1, 0.2],
+                scale: [0.8, 1.2, 0.8],
+              }}
+              transition={{ 
+                duration: duration,
+                repeat: Infinity,
+                delay: delay,
+                ease: "easeInOut"
+              }}
+              className={`absolute rounded-full ${colorClass}`}
+              style={{ 
+                top: `${top}%`, 
+                left: `${left}%`,
+                width: `${size}px`,
+                height: `${size}px`
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Header */}
